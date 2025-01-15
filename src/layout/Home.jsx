@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import basic from "../assets/basic.svg";
 import pro from "../assets/pro.svg";
 import business from "../assets/business.svg";
@@ -30,6 +30,18 @@ const Home = () => {
   const [userName, setUserName] = useState(""); // Assuming you manage user state elsewhere
   const [planType, setPlanType] = useState(""); // Assuming you manage plan state elsewhere
 
+  useEffect(()=>{
+    firebase.auth().onAuthStateChanged((user) => {
+      if(user){
+        setUserId(user?.uid)
+        setUserName(user?.displayName)
+      }
+      else{
+        setUserId("");
+        setUserName("");
+      }
+    })
+  })
   const handleLogout = () => {
     firebase.auth().signOut().then(() => {
       // Handle successful logout
@@ -39,8 +51,26 @@ const Home = () => {
   };
 
   const checkout = (price) => {
-    // Implement your checkout logic here
-    console.log("Checkout initiated with price:", price);
+    fetch("http://localhost:5000/api/v1/create-subscription-checkout-session", 
+      {
+        method: "POST",
+        headers: {
+          "Content-Type" : "application/json",
+        },
+        mode: "cors",
+        body: JSON.stringify({plan, customerId: userId})
+      })
+      .then((res) => {
+        if(res.ok) return res.json();
+        console.log(res)
+        return res.json().then((json)=> Promise.reject(json));
+      })
+      .then(({session}) =>{
+        window.location = session.url;
+      })
+      .catch((e)=>{
+        console.log(e.error)
+      })
   };
 
   return (
